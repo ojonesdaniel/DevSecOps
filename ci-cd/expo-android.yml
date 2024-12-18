@@ -1,54 +1,100 @@
+variables:
+  JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+  EXPO_TOKEN: $(EXPO_TOKEN)
 trigger:
   branches:
     include:
-      - main
-
-variables:
-  EXPO_TOKEN: 
-  APP_CENTER_TOKEN: 
-pool:
-  vmImage: 'ubuntu-latest'
-
+    - refs/heads/develop
+    - refs/heads/homolog
+resources:
+  repositories:
+  - repository: self
+    type: git
+    ref: refs/heads/develop
 jobs:
-  - job: BuildJob
-    displayName: 'Build and Deploy Expo Project'
-    steps:
-      - task: Npm@1
-        inputs:
-          command: 'install'
-          workingDirectory: $(Build.SourcesDirectory)
+- job: Job_1
+  displayName: Agent job 1
+  pool:
+    vmImage: ubuntu-latest
+  steps:
+  - checkout: self
+    fetchDepth: 1
 
-      - script: |
-          npm install -g eas-cli
-          npm install -g expo-cli
-          npm install
-        displayName: 'Install eas-cli, expo-cli, and project dependencies'
+  - task: Bash@3
+    displayName: 'INSTALL - JAVA '
+    inputs:
+      targetType: inline
+      script: 
+        #!/bin/bash
 
-      - script: |
-          EXPO_TOKEN=$(EXPO_TOKEN)
-          eas whoami
-        displayName: 'Authenticate with Expo and verify user'
+        #Passo 1: Atualizar pacotes
+        echo "Atualizando pacotes do sistema..."
+        sudo apt update -y && sudo apt upgrade -y
 
-      - script: |
-          npx eas build --platform android --profile preview
-        displayName: 'Build Expo Project for Android'
+        #Passo 2: Instalar Java 17
+        echo "Instalando o Java 17..."
+        sudo apt install openjdk-17-jdk -y
 
-      - script: |
-          eas build:download --platform android --output=$(Build.ArtifactStagingDirectory)
-        displayName: 'Download Build Artifacts'
+        #Passo 3: Verificar a instalação do Java 17
+        echo "Verificando instalação do Java..."
+        java -version
 
+        #Passo 4: Configurar JAVA_HOME
+        echo "Configurando a variável JAVA_HOME..."
+        export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+        echo "JAVA_HOME=$JAVA_HOME" | sudo tee -a /etc/environment
 
-      - script: |
-      npm install -g appcenter-cli
-      
-      appcenter login --token $(APP_CENTER_TOKEN)
-      
-      appcenter distribute release --app Ivory-IT/FVD --file $(Build.ArtifactStagingDirectory)/*.apk --group "Grupo de Testes" --release-notes "New version release"
-    displayName: 'Publish to App Center'
+        #Passo 5: Instalar Gradle
+        echo "Instalando o Gradle..."
+        sudo apt install wget unzip -y
+        wget https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+        unzip gradle-8.10.2-bin.zip
+        sudo mv gradle-8.10.2 /opt/gradle
+        echo "export GRADLE_HOME=/opt/gradle" | sudo tee -a /etc/environment
+        echo "export PATH=\$PATH:/opt/gradle/bin" | sudo tee -a /etc/environment
 
-  - publish: $(Build.ArtifactStagingDirectory)
-    artifact: 'expo-build-artifacts'
-    displayName: 'Publish Build Artifacts'
+        #Passo 6: Recarregar o ambiente
+        echo "Recarregando o ambiente..."
+        source /etc/environment
 
+        #Passo 7: Verificar instalação do Gradle
+        echo "Verificando instalação do Gradle..."
+        gradle -v
 
+        echo "Configuração do ambiente concluída com sucesso!"
 
+  - task: Bash@3
+    displayName: INSTALL - NPM
+    inputs:
+      targetType: inline
+      script: 
+        npm install -g eas-cli
+        npm install -g expo-cli
+        npm install
+        expo r -c
+        expo upgrade
+
+  - task: Bash@3
+    displayName: EXPO - LOGIN EXPO
+    inputs:
+      targetType: inline
+      script: 
+        EXPO_TOKEN=$(EXPO_TOKEN)
+        eas whoami
+
+  - task: Bash@3
+    displayName: 'EXPO - BUILD '
+    inputs:
+      targetType: inline
+      script: 
+        npx eas build --platform android --profile production --non-interactive --local 
+
+        echo "Movendo APK para o diretório de artefatos"
+        mv /home/vsts/work/1/s/*.aab $(Build.ArtifactStagingDirectory)/app-release.aab
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish Pipeline Artifact
+    inputs:
+      path: $(Build.ArtifactStagingDirectory)
+      artifactName: drop
+  
