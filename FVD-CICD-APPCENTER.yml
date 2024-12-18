@@ -1,0 +1,54 @@
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  EXPO_TOKEN: 
+  APP_CENTER_TOKEN: 
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+  - job: BuildJob
+    displayName: 'Build and Deploy Expo Project'
+    steps:
+      - task: Npm@1
+        inputs:
+          command: 'install'
+          workingDirectory: $(Build.SourcesDirectory)
+
+      - script: |
+          npm install -g eas-cli
+          npm install -g expo-cli
+          npm install
+        displayName: 'Install eas-cli, expo-cli, and project dependencies'
+
+      - script: |
+          EXPO_TOKEN=$(EXPO_TOKEN)
+          eas whoami
+        displayName: 'Authenticate with Expo and verify user'
+
+      - script: |
+          npx eas build --platform android --profile preview
+        displayName: 'Build Expo Project for Android'
+
+      - script: |
+          eas build:download --platform android --output=$(Build.ArtifactStagingDirectory)
+        displayName: 'Download Build Artifacts'
+
+
+      - script: |
+      npm install -g appcenter-cli
+      
+      appcenter login --token $(APP_CENTER_TOKEN)
+      
+      appcenter distribute release --app Ivory-IT/FVD --file $(Build.ArtifactStagingDirectory)/*.apk --group "Grupo de Testes" --release-notes "New version release"
+    displayName: 'Publish to App Center'
+
+  - publish: $(Build.ArtifactStagingDirectory)
+    artifact: 'expo-build-artifacts'
+    displayName: 'Publish Build Artifacts'
+
+
+
