@@ -6,11 +6,7 @@ trigger:
     include:
     - refs/heads/develop
     - refs/heads/homolog
-resources:
-  repositories:
-  - repository: self
-    type: git
-    ref: refs/heads/develop
+
 jobs:
 - job: Job_1
   displayName: Agent job 1
