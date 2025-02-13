@@ -5,6 +5,7 @@ trigger:
     include:
     - refs/heads/develop
     - refs/heads/homolog
+    - refs/heads/main
 jobs:
 - job: Job_1
   displayName: Agent job 1
