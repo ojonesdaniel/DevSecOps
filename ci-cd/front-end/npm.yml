@@ -1,0 +1,33 @@
+variables:
+
+trigger:
+  branches:
+    include:
+    - refs/heads/develop
+    - refs/heads/homolog
+jobs:
+- job: Job_1
+  displayName: Agent job 1
+  pool:
+    vmImage: ubuntu-latest
+  
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x' 
+    displayName: 'Instalar Node.js'
+
+  - script: npm install
+    displayName: 'Instalar dependências'
+
+  - script: npm test
+    displayName: 'Rodar testes'
+
+  - script: npm run build
+    displayName: 'Compilar aplicação'
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: 'dist'  # Caminho da pasta do build
+      artifactName: 'drop'  # Nome do artefato publicado
+    displayName: 'Publicar Artefato'

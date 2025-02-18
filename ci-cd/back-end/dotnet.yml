@@ -1,0 +1,49 @@
+variables:
+
+trigger:
+  branches:
+    include:
+    - refs/heads/develop
+    - refs/heads/homolog
+    - refs/heads/main
+jobs:
+- job: Job_1
+  displayName: Agent job 1
+  pool:
+    vmImage: ubuntu-latest
+  steps:
+  
+- task: DotNetCoreCLI@2
+  displayName: "Dotnet Restore"
+  inputs:
+    command: 'restore'
+    projects: '$(ProjectPath)' # Caminho do Projeto
+    restoreArguments: '--force'
+    feedsToUse: 'select'
+    vstsFeed: '$(id-Feed)'
+
+- task: DotNetCoreCLI@2
+  displayName: "Dotnet Build"
+  inputs:
+    command: 'build'
+    projects: '$(ProjectPath)' # Caminho do Projeto
+    arguments: '--no-restore --configuration $(BuildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  displayName: "Dotnet Test"
+  inputs:
+    command: 'test'
+    projects: '$(ProjectPath)' # Caminho do Projeto
+    arguments: '--no-restore --no-build --configuration $(BuildConfiguration) --collect "Code Coverage"'
+
+- task: DotNetCoreCLI@2
+  displayName: "Dotnet Publish"
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: '$(ProjectPath)' # Caminho do Projeto
+    arguments: '--no-restore --no-build --configuration $(BuildConfiguration) --output $(build.artifactstagingdirectory)'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: drop'
+
