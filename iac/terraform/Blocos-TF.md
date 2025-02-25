@@ -5,7 +5,7 @@ O **Terraform** utiliza blocos para definir e gerenciar a infraestrutura como c�
 ## 🧱 1. Bloco `provider`
 Define o provedor de nuvem e suas configurações.
 
-```hcl
+```yaml
 provider "azurerm" {
   features {}
   subscription_id = "xxxx-xxxx-xxxx"
@@ -23,7 +23,7 @@ provider "azurerm" {
 ## ⚙️ 2. Bloco `resource`
 Cria e gerencia recursos no provedor especificado.
 
-```hcl
+```yaml
 resource "azurerm_resource_group" "example" {
   name     = "my-resource-group"
   location = "East US"
@@ -38,7 +38,7 @@ resource "azurerm_resource_group" "example" {
 ## 🔍 3. Bloco `variable`
 Define variáveis que tornam o código mais dinâmico.
 
-```hcl
+```yaml
 variable "location" {
   description = "Azure region"
   type        = string
@@ -54,7 +54,7 @@ variable "location" {
 ## 🎛️ 4. Bloco `output`
 Exibe informações após a execução do `terraform apply`.
 
-```hcl
+```yaml
 output "resource_group_name" {
   value = azurerm_resource_group.example.name
 }
@@ -67,7 +67,7 @@ output "resource_group_name" {
 ## 🔄 5. Bloco `data`
 Consulta dados existentes sem recriar recursos.
 
-```hcl
+```yaml
 data "azurerm_resource_group" "example" {
   name = "my-existing-rg"
 }
@@ -80,7 +80,7 @@ data "azurerm_resource_group" "example" {
 ## 🔗 6. Bloco `module`
 Reutiliza código de infraestrutura.
 
-```hcl
+```yaml
 module "network" {
   source = "./modules/network"
   vnet_name = "my-vnet"
@@ -95,7 +95,7 @@ module "network" {
 ## 🔐 7. Bloco `locals`
 Define variáveis locais temporárias.
 
-```hcl
+```yaml
 locals {
   env_prefix = "dev"
 }
@@ -114,7 +114,7 @@ locals {
 
 ## 🌐 Exemplo completo no Azure:
 
-```hcl
+```yaml
 provider "azurerm" {
   features {}
 }
@@ -133,6 +133,8 @@ output "rg_name" {
 }
 ```
 
+---
+
 ## 💡 Dicas:
 - Utilize o **`terraform fmt`** para manter o código padronizado.  
 - **`terraform plan`** sempre antes do **`apply`**.  
@@ -146,8 +148,64 @@ output "rg_name" {
 
 Essa função serve para colocar uma condição no recurso que só pode ser provisionado caso essa de dependência seja atendida.
 
-```hcl
+```yaml
 
+resource "azurerm_resource_group" "example" {
+  name     = "example-resources"
+  location = "West Europe"
+}
 
+resource "azurerm_storage_account" "example" {
+  name                     = "examplestoracc"
+  resource_group_name      = azurerm_resource_group.example.name
+  location                 = azurerm_resource_group.example.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  depends_on = [azurerm_resource_group] # Nessa linha podemos ver que o Storage Account só sera criado caso já tenha o sido criado o grupo de recursos
+}
+```
 
+---
+
+## 2. Count
+
+O argumento count permite criar múltiplas instâncias do mesmo recurso com base em um valor numérico. Isso é útil quando você precisa de vários recursos idênticos sem duplicar código.
+
+```yaml
+
+resource "azurerm_storage_account" "example" {
+  count = 3  # Criará 3 Storage Accounts automaticamente
+
+  name                     = "examplestoracc${count.index}"  # Adiciona um índice para nomes únicos
+  resource_group_name      = azurerm_resource_group.example.name
+  location                 = azurerm_resource_group.example.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+```
+---
+
+## 3. For Each
+
+O for_each permite criar múltiplos recursos dinamicamente com base em listas (set) ou mapas (map), garantindo maior flexibilidade em relação ao count.
+
+```YAML
+variable "storage_accounts" {
+  type = map(string)
+  default = {
+    storage1 = "West Europe"
+    storage2 = "East US"
+    storage3 = "Brazil South"
+  }
+}
+
+resource "azurerm_storage_account" "example" {
+  for_each = var.storage_accounts  # Cria um Storage Account para cada item no mapa
+
+  name                     = "examplestoracc-${each.key}"  # Nome único para cada Storage Account
+  resource_group_name      = azurerm_resource_group.example.name
+  location                 = each.value  # Define a região com base no mapa
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
 ```
