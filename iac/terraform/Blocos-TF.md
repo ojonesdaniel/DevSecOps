@@ -133,10 +133,21 @@ output "rg_name" {
 }
 ```
 
----
-
 ## 💡 Dicas:
 - Utilize o **`terraform fmt`** para manter o código padronizado.  
 - **`terraform plan`** sempre antes do **`apply`**.  
 - Estruture seu código com arquivos separados: **main.tf**, **variables.tf** e **outputs.tf**.
 
+---
+
+# 🌱 Meta arguments
+
+## 1. Depends On 
+
+Essa função serve para colocar uma condição no recurso que só pode ser provisionado caso essa de dependência seja atendida.
+
+```hcl
+
+
+
+```
